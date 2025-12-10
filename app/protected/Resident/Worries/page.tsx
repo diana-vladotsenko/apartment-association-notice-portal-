@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -19,7 +20,7 @@ import type { Worry } from '@/types/Worry';
 
 const supabase = createClient();
 
-export default function ResidentWorriesPage() {
+function ResidentWorriesPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -61,10 +62,7 @@ export default function ResidentWorriesPage() {
           .eq('worry_id', worryId)
           .eq('user_id', user.id);
 
-        if (error) {
-          console.error('Error unliking worry:', error);
-          return;
-        }
+        if (error) return;
 
         setWorries((prev) =>
           prev.map((w) =>
@@ -83,10 +81,7 @@ export default function ResidentWorriesPage() {
           user_id: user.id,
         });
 
-        if (error) {
-          console.error('Error liking worry:', error);
-          return;
-        }
+        if (error) return;
 
         setWorries((prev) =>
           prev.map((w) =>
@@ -100,9 +95,7 @@ export default function ResidentWorriesPage() {
           )
         );
       }
-    } catch (err) {
-      console.error('Error toggling worry like:', err);
-    }
+    } catch {}
   };
 
   useEffect(() => {
@@ -154,19 +147,7 @@ export default function ResidentWorriesPage() {
           .order('created_at', { ascending: sort === 'oldest' })
           .range(from, to);
 
-        if (error) {
-          let errorMessage = 'Unknown error';
-          try {
-            errorMessage =
-              typeof error.message === 'string' ? error.message : JSON.stringify(error);
-          } catch {
-            errorMessage = 'Error parsing Supabase error';
-          }
-          console.error('Error fetching resident worries:', errorMessage);
-
-          setWorries([]);
-          setCount(0);
-        } else {
+        if (!error) {
           const mapped: Worry[] =
             (data || []).map((row: any) => {
               const likes = row.likesworry ?? [];
@@ -178,9 +159,11 @@ export default function ResidentWorriesPage() {
 
           setWorries(mapped);
           setCount(count || 0);
+        } else {
+          setWorries([]);
+          setCount(0);
         }
-      } catch (err) {
-        console.error('Unexpected error fetching resident worries:', err);
+      } catch {
         setWorries([]);
         setCount(0);
       } finally {
@@ -200,12 +183,7 @@ export default function ResidentWorriesPage() {
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', backgroundColor: '#fff' }}>
-      {/* Overlay */}
-      <LoadingOverlay
-        visible={actionLoading}
-        zIndex={2000}
-        loaderProps={{ size: 'xl', variant: 'bars', color: 'blue' }}
-      />
+      <LoadingOverlay visible={actionLoading} zIndex={2000} loaderProps={{ size: 'xl', variant: 'bars', color: 'blue' }} />
       <ScrollArea style={{ maxHeight: 'calc(100vh - 80px)' }} px="md" py="lg">
         <Stack gap="md">
           <Flex justify="space-between" align="center" w="100%">
@@ -215,13 +193,7 @@ export default function ResidentWorriesPage() {
             <FiltersWorries />
           </Flex>
           <Flex gap="xs" mt={-4} justify="flex-end" align="center" w="100%">
-            <Badge
-              color="blue"
-              variant="light"
-              radius="xl"
-              size="sm"
-              styles={{ root: { paddingLeft: 12, paddingRight: 12 } }}
-            >
+            <Badge color="blue" variant="light" radius="xl" size="sm">
               {sort === 'newest' ? 'Newest' : 'Oldest'}
             </Badge>
           </Flex>
@@ -249,11 +221,7 @@ export default function ResidentWorriesPage() {
               <Card key={worry.id} withBorder shadow="sm" radius="md">
                 <Text fw={600}>{worry.title || 'Untitled worry'}</Text>
 
-                {worry.content && (
-                  <Text size="sm" mt="xs">
-                    {worry.content}
-                  </Text>
-                )}
+                {worry.content && <Text size="sm" mt="xs">{worry.content}</Text>}
 
                 <Group justify="space-between" mt="xs" align="center">
                   <Text size="xs" c="dimmed">
@@ -271,16 +239,10 @@ export default function ResidentWorriesPage() {
             );
           })}
 
-          {/* Pagination */}
           {worries.length > 0 && (
             <Group justify="center" mt="md" gap="md">
               {page > 1 && (
-                <Text
-                  fw={600}
-                  c="blue"
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => router.push(buildPageUrl(page - 1))}
-                >
+                <Text fw={600} c="blue" style={{ cursor: 'pointer' }} onClick={() => router.push(buildPageUrl(page - 1))}>
                   ← Previous
                 </Text>
               )}
@@ -288,12 +250,7 @@ export default function ResidentWorriesPage() {
                 {page} / {totalPages}
               </Text>
               {page < totalPages && (
-                <Text
-                  fw={600}
-                  c="blue"
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => router.push(buildPageUrl(page + 1))}
-                >
+                <Text fw={600} c="blue" style={{ cursor: 'pointer' }} onClick={() => router.push(buildPageUrl(page + 1))}>
                   Next →
                 </Text>
               )}
@@ -302,5 +259,13 @@ export default function ResidentWorriesPage() {
         </Stack>
       </ScrollArea>
     </div>
+  );
+}
+
+export default function ResidentWorriesPage() {
+  return (
+    <Suspense>
+      <ResidentWorriesPageContent />
+    </Suspense>
   );
 }
