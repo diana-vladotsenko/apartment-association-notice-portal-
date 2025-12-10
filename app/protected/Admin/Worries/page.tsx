@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
@@ -17,7 +18,7 @@ import type { Worry } from '@/types/Worry';
 import FiltersWorries from '@/components/FiltersWorries';
 import DeleteButtonWorry from '@/app/protected/Admin/Worries/components/DeleteButtonWorry';
 
-export default function AdminWorriesPage() {
+function AdminWorriesPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -50,8 +51,7 @@ export default function AdminWorriesPage() {
         );
         setWorries(data);
         setCount(count);
-      } catch (error) {
-        console.error('Error fetching worries:', error);
+      } catch {
         setWorries([]);
         setCount(0);
       } finally {
@@ -70,7 +70,6 @@ export default function AdminWorriesPage() {
   }, [fetchWorries]);
 
   const handleAfterDelete = async (deletedId: string) => {
-    // same behavior as before: handle last item on page
     if (worries.length === 1 && page > 1) {
       const newPage = page - 1;
       setPage(newPage);
@@ -85,7 +84,6 @@ export default function AdminWorriesPage() {
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', backgroundColor: '#fff' }}>
-      {/* Overlay */}
       <LoadingOverlay
         visible={actionLoading}
         zIndex={2000}
@@ -102,13 +100,7 @@ export default function AdminWorriesPage() {
           </Flex>
 
           <Flex gap="xs" mt={-4} justify="flex-end" align="center" w="100%">
-            <Badge
-              color="blue"
-              variant="light"
-              radius="xl"
-              size="sm"
-              styles={{ root: { paddingLeft: 12, paddingRight: 12 } }}
-            >
+            <Badge color="blue" variant="light" radius="xl" size="sm">
               {sort === 'newest' ? 'Newest' : 'Oldest'}
             </Badge>
           </Flex>
@@ -153,17 +145,10 @@ export default function AdminWorriesPage() {
                     </Text>
                   </Stack>
 
-                  <DeleteButtonWorry
-                    id={worry.id}
-                    onDeleted={() => handleAfterDelete(worry.id)}
-                  />
+                  <DeleteButtonWorry id={worry.id} onDeleted={() => handleAfterDelete(worry.id)} />
                 </Group>
 
-                {worry.content && (
-                  <Text size="sm" mt="xs">
-                    {worry.content}
-                  </Text>
-                )}
+                {worry.content && <Text size="sm">{worry.content}</Text>}
               </Card>
             );
           })}
@@ -171,12 +156,7 @@ export default function AdminWorriesPage() {
           {worries.length > 0 && (
             <Group justify="center" mt="md" gap="md">
               {page > 1 && (
-                <Text
-                  fw={600}
-                  c="blue"
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => router.push(buildPageUrl(page - 1))}
-                >
+                <Text fw={600} c="blue" style={{ cursor: 'pointer' }} onClick={() => router.push(buildPageUrl(page - 1))}>
                   ← Previous
                 </Text>
               )}
@@ -184,12 +164,7 @@ export default function AdminWorriesPage() {
                 {page} / {totalPages}
               </Text>
               {page < totalPages && (
-                <Text
-                  fw={600}
-                  c="blue"
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => router.push(buildPageUrl(page + 1))}
-                >
+                <Text fw={600} c="blue" style={{ cursor: 'pointer' }} onClick={() => router.push(buildPageUrl(page + 1))}>
                   Next →
                 </Text>
               )}
@@ -198,5 +173,13 @@ export default function AdminWorriesPage() {
         </Stack>
       </ScrollArea>
     </div>
+  );
+}
+
+export default function AdminWorriesPage() {
+  return (
+    <Suspense>
+      <AdminWorriesPageContent />
+    </Suspense>
   );
 }
